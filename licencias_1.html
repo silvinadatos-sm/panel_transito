@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Licencias de Conducir · Panel de Gestión</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@500;700;800&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+:root{
+  --bg:#EEF0EF; --panel:#FFFFFF; --panel2:#F7F8F7;
+  --ink:#16243F; --mut:#5C6678; --mut2:#8B93A3;
+  --line:rgba(22,36,63,.11); --line2:rgba(22,36,63,.18);
+  --acc:#C97D2E; --acc-d:#A8651E; --acc-soft:rgba(201,125,46,.13);
+  --teal:#2E6B5E; --teal-soft:rgba(46,107,94,.13);
+  --warn:#B23B2E;
+  --r:14px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{
+  background:var(--bg); color:var(--ink); font-family:"Inter",sans-serif;
+  min-height:100vh; padding:clamp(14px,2.2vw,30px); -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:1360px;margin:0 auto}
+.num{font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+
+/* ===== Header ===== */
+header{
+  display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:16px;
+  margin-bottom:18px;padding-bottom:18px;border-bottom:1px solid var(--line2);
+}
+.brand .eyebrow{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--mut2);font-weight:600}
+.brand h1{font-family:"Public Sans",sans-serif;font-weight:800;font-size:clamp(24px,3.4vw,34px);
+  letter-spacing:-.02em;margin-top:4px;color:var(--ink)}
+.brand .sub{color:var(--mut);font-size:13.5px;margin-top:6px}
+.status{text-align:right}
+.status .row{display:flex;align-items:center;gap:8px;justify-content:flex-end;font-size:12.5px;color:var(--mut)}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--teal);box-shadow:0 0 0 3px var(--teal-soft)}
+.dot.err{background:var(--warn);box-shadow:0 0 0 3px rgba(178,59,46,.15)}
+.status .count{font-family:"Public Sans",sans-serif;font-weight:700;font-size:15px;color:var(--ink);margin-top:4px}
+
+/* ===== Filters ===== */
+.filters{
+  background:var(--panel);border:1px solid var(--line);border-radius:var(--r);
+  padding:14px 16px;margin-bottom:16px;display:flex;flex-wrap:wrap;gap:14px;align-items:flex-start;
+}
+.f-group{display:flex;flex-direction:column;gap:6px}
+.f-lbl{font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--mut2);font-weight:600}
+.seg{display:inline-flex;background:var(--panel2);border:1px solid var(--line);border-radius:9px;padding:3px;gap:2px}
+.seg button{font-family:"Inter",sans-serif;font-size:12.5px;color:var(--mut);background:none;border:none;
+  padding:6px 11px;border-radius:6px;cursor:pointer;transition:.15s;white-space:nowrap}
+.seg button:hover{color:var(--ink)}
+.seg button.on{background:var(--ink);color:#fff;font-weight:600}
+.chips{display:flex;flex-wrap:wrap;gap:6px;max-width:420px}
+.chip{font-family:"Inter",sans-serif;font-size:12.5px;color:var(--mut);background:var(--panel2);
+  border:1px solid var(--line);border-radius:20px;padding:6px 12px;cursor:pointer;transition:.15s;white-space:nowrap}
+.chip:hover{border-color:var(--line2)}
+.chip.on{background:var(--acc-soft);border-color:var(--acc);color:var(--acc-d);font-weight:600}
+.loc-wrap{position:relative}
+.loc-btn{font-family:"Inter",sans-serif;font-size:12.5px;color:var(--ink);background:var(--panel2);
+  border:1px solid var(--line);border-radius:8px;padding:7px 12px;cursor:pointer;min-width:170px;text-align:left;
+  display:flex;justify-content:space-between;align-items:center;gap:8px}
+.loc-btn:hover{border-color:var(--line2)}
+.loc-panel{display:none;position:absolute;top:calc(100% + 6px);left:0;z-index:20;
+  background:var(--panel);border:1px solid var(--line2);border-radius:10px;box-shadow:0 12px 28px rgba(22,36,63,.16);
+  width:300px;max-height:340px;display:none;flex-direction:column}
+.loc-panel.open{display:flex}
+.loc-search{border:none;border-bottom:1px solid var(--line);padding:10px 12px;font-size:13px;font-family:"Inter",sans-serif;outline:none}
+.loc-actions{display:flex;gap:8px;padding:8px 12px;border-bottom:1px solid var(--line)}
+.loc-actions button{font-size:11.5px;color:var(--acc-d);background:none;border:none;cursor:pointer;font-weight:600}
+.loc-list{overflow-y:auto;padding:6px 4px}
+.loc-item{display:flex;align-items:center;gap:8px;padding:6px 10px;font-size:13px;cursor:pointer;border-radius:6px}
+.loc-item:hover{background:var(--panel2)}
+.loc-item input{accent-color:var(--acc)}
+.clear-btn{font-family:"Inter",sans-serif;font-size:12px;color:var(--mut);background:var(--panel2);
+  border:1px solid var(--line);border-radius:8px;padding:7px 13px;cursor:pointer;align-self:flex-end;margin-left:auto}
+.clear-btn:hover{color:var(--ink);border-color:var(--line2)}
+.refresh-btn{font-family:"Inter",sans-serif;font-size:12px;color:#fff;background:var(--ink);
+  border-radius:8px;padding:7px 13px;cursor:pointer;align-self:flex-end;font-weight:600}
+.refresh-btn:hover{background:var(--acc-d)}
+.refresh-btn.loading{opacity:.6;pointer-events:none}
+
+/* ===== KPIs ===== */
+.kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:16px}
+.kpi{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:16px 17px}
+.kpi .k-lbl{font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--mut2);font-weight:600}
+.kpi .k-val{font-family:"Public Sans",sans-serif;font-weight:800;font-size:clamp(20px,2.4vw,27px);
+  margin-top:9px;letter-spacing:-.02em;color:var(--ink)}
+.kpi .k-sub{font-size:11.5px;color:var(--mut);margin-top:5px}
+.kpi.acc .k-val{color:var(--acc-d)}
+.kpi.teal .k-val{color:var(--teal)}
+
+/* ===== Charts ===== */
+.grid{display:grid;grid-template-columns:1.5fr 1fr;gap:12px;margin-bottom:12px}
+.grid3{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:16px 18px 14px}
+.card.full{grid-column:1/-1}
+.c-head{margin-bottom:12px}
+.c-title{font-family:"Public Sans",sans-serif;font-weight:700;font-size:14.5px;color:var(--ink)}
+.c-note{font-size:11.5px;color:var(--mut2);margin-top:2px}
+.c-body{position:relative}
+.c-body.h220{height:220px}
+.c-body.h280{height:280px}
+.c-body.h340{height:340px}
+
+footer{margin-top:20px;padding-top:16px;border-top:1px solid var(--line2);font-size:11.5px;color:var(--mut2);
+  display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px;line-height:1.6}
+footer .meta{max-width:760px}
+.empty-state{padding:60px 20px;text-align:center;color:var(--mut)}
+
+@media(max-width:980px){
+  .kpis{grid-template-columns:repeat(2,1fr)}
+  .grid,.grid3{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="brand">
+      <div class="eyebrow">Subsecretaría de Transporte, Tránsito y Seguridad Vial</div>
+      <h1>Licencias de conducir</h1>
+      <div class="sub">Panel de gestión · trámites emitidos</div>
+    </div>
+    <div class="status">
+      <div class="row"><span class="dot" id="statusDot"></span><span id="statusText">Cargando datos…</span></div>
+      <div class="count num" id="recordCount">—</div>
+    </div>
+  </header>
+
+  <div class="filters" id="filtersBar">
+    <div class="f-group">
+      <span class="f-lbl">Localidad</span>
+      <div class="loc-wrap">
+        <button class="loc-btn" id="locBtn">Todas <span id="locBtnCount"></span> ▾</button>
+        <div class="loc-panel" id="locPanel">
+          <input class="loc-search" id="locSearch" placeholder="Buscar localidad…">
+          <div class="loc-actions">
+            <button id="locAll">Seleccionar todas</button>
+            <button id="locNone">Ninguna</button>
+          </div>
+          <div class="loc-list" id="locList"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="f-group">
+      <span class="f-lbl">Categoría</span>
+      <div class="chips" id="catChips"></div>
+    </div>
+
+    <div class="f-group">
+      <span class="f-lbl">Año</span>
+      <div class="seg" id="anioSeg"></div>
+    </div>
+
+    <div class="f-group">
+      <span class="f-lbl">Trimestre</span>
+      <div class="seg" id="trimSeg"></div>
+    </div>
+
+    <button class="refresh-btn" id="refreshBtn">↻ Actualizar datos</button>
+    <button class="clear-btn" id="clearBtn">Limpiar filtros</button>
+  </div>
+
+  <div id="dashboardBody">
+
+  <div class="kpis">
+    <div class="kpi acc">
+      <div class="k-lbl">Trámites</div>
+      <div class="k-val num" id="kpiTotal">—</div>
+      <div class="k-sub" id="kpiTotalSub">según filtros activos</div>
+    </div>
+    <div class="kpi">
+      <div class="k-lbl">Tiempo de trámite (prom.)</div>
+      <div class="k-val num" id="kpiDiasProm">—</div>
+      <div class="k-sub">días entre inicio y autorización</div>
+    </div>
+    <div class="kpi">
+      <div class="k-lbl">Tiempo de trámite (mediana)</div>
+      <div class="k-val num" id="kpiDiasMed">—</div>
+      <div class="k-sub">menos sensible a valores extremos</div>
+    </div>
+    <div class="kpi teal">
+      <div class="k-lbl">Renovaciones</div>
+      <div class="k-val num" id="kpiRenov">—</div>
+      <div class="k-sub" id="kpiRenovSub">sobre el total filtrado</div>
+    </div>
+    <div class="kpi">
+      <div class="k-lbl">Edad promedio</div>
+      <div class="k-val num" id="kpiEdad">—</div>
+      <div class="k-sub">de los titulares</div>
+    </div>
+  </div>
+
+  <div class="grid">
+    <div class="card">
+      <div class="c-head">
+        <div class="c-title">Volumen de trámites por mes</div>
+        <div class="c-note">Cantidad de licencias autorizadas, según filtros activos</div>
+      </div>
+      <div class="c-body h280"><canvas id="chartMensual"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="c-head">
+        <div class="c-title">Distribución por categoría</div>
+        <div class="c-note">Original, renovación, ampliación, duplicado, reemplazo</div>
+      </div>
+      <div class="c-body h280"><canvas id="chartCategoria"></canvas></div>
+    </div>
+  </div>
+
+  <div class="grid3">
+    <div class="card">
+      <div class="c-head">
+        <div class="c-title">Localidades con mayor volumen</div>
+        <div class="c-note">Top 15 según filtros activos</div>
+      </div>
+      <div class="c-body h340"><canvas id="chartLocalidad"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="c-head">
+        <div class="c-title">Perfil etario y género</div>
+        <div class="c-note">Distribución de titulares por grupo etario</div>
+      </div>
+      <div class="c-body h340"><canvas id="chartEtario"></canvas></div>
+    </div>
+  </div>
+
+  <div class="card full">
+    <div class="c-head">
+      <div class="c-title">Tiempo de trámite promedio por categoría</div>
+      <div class="c-note">Días entre inicio del trámite y autorización, por tipo</div>
+    </div>
+    <div class="c-body h220"><canvas id="chartTiempos"></canvas></div>
+  </div>
+
+  </div>
+
+  <footer>
+    <div class="meta">
+      Fuente: base de licencias emitidas, Subsecretaría de Transporte, Tránsito y Seguridad Vial, Municipalidad de General San Martín. Los campos de período, grupo etario y días de trámite se calculan en este panel a partir de las columnas de fecha originales (no se usan las columnas precalculadas de la planilla, que están incompletas para los registros más recientes). Algunas localidades presentan variantes de tipeo en la base de origen (por ejemplo, espacios duplicados) que aún no fueron unificadas.
+    </div>
+    <div id="lastUpdate"></div>
+  </footer>
+
+</div>
+
+<script>
+const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTxMk331iEDI1C3RkuuquKx0cZGUjq2J4wxhbLMHNIK4H8jRwWMkWliguFhGTTirEt8tJqOiGX9EzyD/pub?gid=818913711&single=true&output=csv";
+
+const CAT_LABELS = ["ORIGINAL","RENOVACIÓN","AMPLIACIÓN","DUPLICADO","REEMPLAZO"];
+const CAT_COLORS = {
+  "ORIGINAL":"#C97D2E","RENOVACIÓN":"#2E6B5E","AMPLIACIÓN":"#5C6BAF","DUPLICADO":"#B23B2E","REEMPLAZO":"#8B93A3"
+};
+const ETARIO_ORDER = ["18-24","25-34","35-44","45-54","55-64","65+"];
+
+let RAW = [];        // filas crudas parseadas y enriquecidas
+let LOCALIDADES = []; // lista ordenada de localidades distintas
+let CHARTS = {};
+
+let filters = {
+  localidades: new Set(), // vacío = todas
+  categorias: new Set(CAT_LABELS),
+  anio: "todos",
+  trimestre: "todos"
+};
+
+// ---------- utilidades ----------
+function parseFechaDDMMYYYY(s){
+  if(!s) return null;
+  const m = s.trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if(!m) return null;
+  const d = new Date(Date.UTC(+m[3], +m[2]-1, +m[1]));
+  return isNaN(d.getTime()) ? null : d;
+}
+function diffDias(a,b){
+  if(!a||!b) return null;
+  return Math.round((b - a) / 86400000);
+}
+function grupoEtario(edad){
+  if(edad==null || isNaN(edad)) return null;
+  if(edad < 18) return "Menos de 18";
+  if(edad <= 24) return "18-24";
+  if(edad <= 34) return "25-34";
+  if(edad <= 44) return "35-44";
+  if(edad <= 54) return "45-54";
+  if(edad <= 64) return "55-64";
+  return "65+";
+}
+function trimestreDe(mes){ return Math.floor((mes-1)/3) + 1; }
+function fmtInt(n){ return Math.round(n).toLocaleString('es-AR'); }
+function fmtPct(n){ return n.toFixed(1).replace('.', ',') + '%'; }
+
+// ---------- carga y procesamiento ----------
+async function cargarDatos(){
+  const btn = document.getElementById('refreshBtn');
+  const dot = document.getElementById('statusDot');
+  const txt = document.getElementById('statusText');
+  btn.classList.add('loading'); btn.textContent = '↻ Cargando…';
+  dot.classList.remove('err'); txt.textContent = 'Cargando datos…';
+  try{
+    const res = await fetch(CSV_URL, {cache:"no-store"});
+    if(!res.ok) throw new Error('HTTP ' + res.status);
+    const text = await res.text();
+    const parsed = Papa.parse(text, {header:true, skipEmptyLines:true});
+    if(!parsed.data.length) throw new Error('La hoja no devolvió datos');
+    procesarFilas(parsed.data);
+    txt.textContent = 'Datos en vivo';
+    document.getElementById('lastUpdate').textContent =
+      'Última carga: ' + new Date().toLocaleString('es-AR');
+    inicializarFiltrosUI();
+    render();
+  }catch(err){
+    dot.classList.add('err');
+    txt.textContent = 'Error al cargar: ' + err.message;
+    console.error(err);
+  }finally{
+    btn.classList.remove('loading'); btn.textContent = '↻ Actualizar datos';
+  }
+}
+
+function procesarFilas(rows){
+  RAW = [];
+  const locSet = new Set();
+  for(const r of rows){
+    const localidad = (r['LOCALIDAD']||'').trim().replace(/\s+/g,' ');
+    const categoria = (r['CATEGORIA']||'').trim();
+    if(!localidad || !categoria) continue;
+    const fAutorizacion = parseFechaDDMMYYYY(r['AUTORIZACION']);
+    const fInicio = parseFechaDDMMYYYY(r['INICIO TRAMITE']);
+    const fVencimiento = parseFechaDDMMYYYY(r['VENCIMIENTO']);
+    const edad = parseInt(r['EDAD'], 10);
+    const genero = (r['GENERO']||'').trim();
+    const claseRaw = (r['CLASE']||'').trim();
+    const clases = claseRaw ? claseRaw.split(',').map(c=>c.trim()).filter(Boolean) : [];
+
+    if(!fAutorizacion) continue;
+
+    locSet.add(localidad);
+    RAW.push({
+      localidad, categoria, genero,
+      edad: isNaN(edad) ? null : edad,
+      grupoEtario: grupoEtario(edad),
+      anio: fAutorizacion.getUTCFullYear(),
+      mes: fAutorizacion.getUTCMonth()+1,
+      trimestre: trimestreDe(fAutorizacion.getUTCMonth()+1),
+      mesAnio: fAutorizacion.getUTCFullYear() + '-' + String(fAutorizacion.getUTCMonth()+1).padStart(2,'0'),
+      diasTramite: diffDias(fInicio, fAutorizacion),
+      vencimiento: fVencimiento,
+      multiclase: clases.length > 1
+    });
+  }
+  LOCALIDADES = Array.from(locSet).sort((a,b)=>a.localeCompare(b,'es'));
+  document.getElementById('recordCount').textContent = fmtInt(RAW.length) + ' registros cargados';
+}
+
+// ---------- filtros UI ----------
+function inicializarFiltrosUI(){
+  // categorías
+  const catChips = document.getElementById('catChips');
+  catChips.innerHTML = CAT_LABELS.map(c =>
+    `<div class="chip on" data-cat="${c}">${c.charAt(0)+c.slice(1).toLowerCase()}</div>`
+  ).join('');
+  catChips.querySelectorAll('.chip').forEach(chip=>{
+    chip.onclick = ()=>{
+      const c = chip.dataset.cat;
+      if(filters.categorias.has(c)) filters.categorias.delete(c); else filters.categorias.add(c);
+      chip.classList.toggle('on');
+      render();
+    };
+  });
+
+  // años disponibles
+  const anios = Array.from(new Set(RAW.map(d=>d.anio))).sort();
+  const anioSeg = document.getElementById('anioSeg');
+  anioSeg.innerHTML = ['todos', ...anios].map(a=>
+    `<button class="${a==='todos'?'on':''}" data-anio="${a}">${a==='todos'?'Todos':a}</button>`
+  ).join('');
+  anioSeg.querySelectorAll('button').forEach(b=>{
+    b.onclick = ()=>{
+      filters.anio = b.dataset.anio==='todos' ? 'todos' : +b.dataset.anio;
+      anioSeg.querySelectorAll('button').forEach(x=>x.classList.toggle('on', x===b));
+      render();
+    };
+  });
+
+  // trimestres
+  const trimSeg = document.getElementById('trimSeg');
+  trimSeg.innerHTML = ['todos',1,2,3,4].map(t=>
+    `<button class="${t==='todos'?'on':''}" data-trim="${t}">${t==='todos'?'Todos':'T'+t}</button>`
+  ).join('');
+  trimSeg.querySelectorAll('button').forEach(b=>{
+    b.onclick = ()=>{
+      filters.trimestre = b.dataset.trim==='todos' ? 'todos' : +b.dataset.trim;
+      trimSeg.querySelectorAll('button').forEach(x=>x.classList.toggle('on', x===b));
+      render();
+    };
+  });
+
+  // localidades
+  renderLocList('');
+  document.getElementById('locSearch').oninput = (e)=>renderLocList(e.target.value);
+  document.getElementById('locAll').onclick = ()=>{ filters.localidades = new Set(); renderLocList(document.getElementById('locSearch').value); updateLocBtn(); render(); };
+  document.getElementById('locNone').onclick = ()=>{ filters.localidades = new Set(LOCALIDADES); renderLocList(document.getElementById('locSearch').value); updateLocBtn(); render(); };
+  // nota: localidades vacío = todas seleccionadas (estado inicial). Internamente usamos
+  // un set de EXCLUIDAS para simplificar "todas por defecto".
+  document.getElementById('locBtn').onclick = ()=>{
+    document.getElementById('locPanel').classList.toggle('open');
+  };
+  document.addEventListener('click', (e)=>{
+    if(!document.getElementById('locPanel').contains(e.target) && e.target.id!=='locBtn'){
+      document.getElementById('locPanel').classList.remove('open');
+    }
+  });
+  updateLocBtn();
+}
+
+// filters.localidades funciona como conjunto de EXCLUIDAS (vacío = ninguna excluida = todas)
+function renderLocList(q){
+  const list = document.getElementById('locList');
+  const ql = q.trim().toLowerCase();
+  const items = LOCALIDADES.filter(l=>l.toLowerCase().includes(ql));
+  list.innerHTML = items.map(l=>{
+    const checked = !filters.localidades.has(l) ? 'checked' : '';
+    return `<label class="loc-item"><input type="checkbox" data-loc="${l}" ${checked}> ${l}</label>`;
+  }).join('');
+  list.querySelectorAll('input').forEach(inp=>{
+    inp.onchange = ()=>{
+      const l = inp.dataset.loc;
+      if(inp.checked) filters.localidades.delete(l); else filters.localidades.add(l);
+      updateLocBtn();
+      render();
+    };
+  });
+}
+function updateLocBtn(){
+  const total = LOCALIDADES.length;
+  const excluded = filters.localidades.size;
+  const selected = total - excluded;
+  const label = excluded===0 ? 'Todas' : (selected + ' de ' + total);
+  document.getElementById('locBtn').firstChild.textContent = label + ' ';
+}
+
+document.getElementById('clearBtn').onclick = ()=>{
+  filters = { localidades: new Set(), categorias: new Set(CAT_LABELS), anio:'todos', trimestre:'todos' };
+  document.querySelectorAll('#catChips .chip').forEach(c=>c.classList.add('on'));
+  document.querySelectorAll('#anioSeg button').forEach(b=>b.classList.toggle('on', b.dataset.anio==='todos'));
+  document.querySelectorAll('#trimSeg button').forEach(b=>b.classList.toggle('on', b.dataset.trim==='todos'));
+  renderLocList(document.getElementById('locSearch') ? document.getElementById('locSearch').value : '');
+  updateLocBtn();
+  render();
+};
+document.getElementById('refreshBtn').onclick = cargarDatos;
+
+// ---------- filtrado y render ----------
+function datosFiltrados(){
+  return RAW.filter(d=>{
+    if(filters.localidades.has(d.localidad)) return false;
+    if(!filters.categorias.has(d.categoria)) return false;
+    if(filters.anio!=='todos' && d.anio!==filters.anio) return false;
+    if(filters.trimestre!=='todos' && d.trimestre!==filters.trimestre) return false;
+    return true;
+  });
+}
+
+function mediana(arr){
+  if(!arr.length) return null;
+  const s = [...arr].sort((a,b)=>a-b);
+  const mid = Math.floor(s.length/2);
+  return s.length%2 ? s[mid] : (s[mid-1]+s[mid])/2;
+}
+
+function render(){
+  const data = datosFiltrados();
+  document.getElementById('kpiTotalSub').textContent =
+    data.length===RAW.length ? 'sin filtros aplicados' : `de ${fmtInt(RAW.length)} totales`;
+
+  if(!data.length){
+    document.getElementById('dashboardBody').innerHTML =
+      '<div class="empty-state">No hay trámites que coincidan con los filtros seleccionados.</div>';
+    return;
+  }
+
+  renderKPIs(data);
+  renderMensual(data);
+  renderCategoria(data);
+  renderLocalidad(data);
+  renderEtario(data);
+  renderTiempos(data);
+}
+
+function renderKPIs(data){
+  document.getElementById('kpiTotal').textContent = fmtInt(data.length);
+
+  const dias = data.map(d=>d.diasTramite).filter(d=>d!=null && d>=0);
+  document.getElementById('kpiDiasProm').textContent = dias.length ? fmtInt(dias.reduce((s,d)=>s+d,0)/dias.length) : '—';
+  document.getElementById('kpiDiasMed').textContent = dias.length ? fmtInt(mediana(dias)) : '—';
+
+  const renov = data.filter(d=>d.categoria==='RENOVACIÓN').length;
+  document.getElementById('kpiRenov').textContent = fmtPct(renov/data.length*100);
+
+  const edades = data.map(d=>d.edad).filter(e=>e!=null);
+  document.getElementById('kpiEdad').textContent = edades.length ? fmtInt(edades.reduce((s,e)=>s+e,0)/edades.length) + ' años' : '—';
+}
+
+function destroyChart(id){ if(CHARTS[id]){ CHARTS[id].destroy(); delete CHARTS[id]; } }
+
+function baseFont(){ return { family:"Inter", size:11.5 }; }
+
+function renderMensual(data){
+  const counts = {};
+  data.forEach(d=>{ counts[d.mesAnio] = (counts[d.mesAnio]||0)+1; });
+  const labels = Object.keys(counts).sort();
+  const values = labels.map(l=>counts[l]);
+  destroyChart('mensual');
+  CHARTS.mensual = new Chart(document.getElementById('chartMensual'), {
+    type:'bar',
+    data:{ labels, datasets:[{ data: values, backgroundColor:'#C97D2E', borderRadius:4, maxBarThickness:34 }]},
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{display:false}, tooltip:{ callbacks:{ label: c=>fmtInt(c.parsed.y)+' trámites' } } },
+      scales:{
+        x:{ grid:{display:false}, ticks:{font:baseFont()} },
+        y:{ beginAtZero:true, grid:{color:'rgba(22,36,63,.07)'}, ticks:{font:baseFont()} }
+      }
+    }
+  });
+}
+
+function renderCategoria(data){
+  const counts = {};
+  CAT_LABELS.forEach(c=>counts[c]=0);
+  data.forEach(d=>{ counts[d.categoria] = (counts[d.categoria]||0)+1; });
+  const labels = CAT_LABELS.filter(c=>counts[c]>0).sort((a,b)=>counts[b]-counts[a]);
+  const values = labels.map(l=>counts[l]);
+  destroyChart('categoria');
+  CHARTS.categoria = new Chart(document.getElementById('chartCategoria'), {
+    type:'bar',
+    data:{ labels: labels.map(l=>l.charAt(0)+l.slice(1).toLowerCase()), datasets:[{
+      data: values, backgroundColor: labels.map(l=>CAT_COLORS[l]), borderRadius:4
+    }]},
+    options:{
+      indexAxis:'y', responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{display:false}, tooltip:{ callbacks:{ label: c=>fmtInt(c.parsed.x)+' ('+fmtPct(c.parsed.x/data.length*100)+')' } } },
+      scales:{
+        x:{ beginAtZero:true, grid:{color:'rgba(22,36,63,.07)'}, ticks:{font:baseFont()} },
+        y:{ grid:{display:false}, ticks:{font:baseFont()} }
+      }
+    }
+  });
+}
+
+function renderLocalidad(data){
+  const counts = {};
+  data.forEach(d=>{ counts[d.localidad] = (counts[d.localidad]||0)+1; });
+  const sorted = Object.entries(counts).sort((a,b)=>b[1]-a[1]).slice(0,15).reverse();
+  destroyChart('localidad');
+  CHARTS.localidad = new Chart(document.getElementById('chartLocalidad'), {
+    type:'bar',
+    data:{ labels: sorted.map(s=>s[0]), datasets:[{ data: sorted.map(s=>s[1]), backgroundColor:'#16243F', borderRadius:4 }]},
+    options:{
+      indexAxis:'y', responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{display:false}, tooltip:{ callbacks:{ label: c=>fmtInt(c.parsed.x)+' trámites' } } },
+      scales:{
+        x:{ beginAtZero:true, grid:{color:'rgba(22,36,63,.07)'}, ticks:{font:baseFont()} },
+        y:{ grid:{display:false}, ticks:{font:{family:"Inter", size:10.5}} }
+      }
+    }
+  });
+}
+
+function renderEtario(data){
+  const byGrupo = {};
+  ETARIO_ORDER.forEach(g=>byGrupo[g]={M:0,F:0});
+  data.forEach(d=>{
+    if(!d.grupoEtario || !byGrupo[d.grupoEtario]) return;
+    if(d.genero==='M') byGrupo[d.grupoEtario].M++;
+    else if(d.genero==='F') byGrupo[d.grupoEtario].F++;
+  });
+  destroyChart('etario');
+  CHARTS.etario = new Chart(document.getElementById('chartEtario'), {
+    type:'bar',
+    data:{
+      labels: ETARIO_ORDER,
+      datasets:[
+        { label:'Masculino', data: ETARIO_ORDER.map(g=>byGrupo[g].M), backgroundColor:'#5C6BAF', borderRadius:3 },
+        { label:'Femenino', data: ETARIO_ORDER.map(g=>byGrupo[g].F), backgroundColor:'#C97D2E', borderRadius:3 }
+      ]
+    },
+    options:{
+      indexAxis:'y', responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{ position:'top', align:'end', labels:{font:baseFont(), boxWidth:11, boxHeight:11} } },
+      scales:{
+        x:{ stacked:true, beginAtZero:true, grid:{color:'rgba(22,36,63,.07)'}, ticks:{font:baseFont()} },
+        y:{ stacked:true, grid:{display:false}, ticks:{font:baseFont()} }
+      }
+    }
+  });
+}
+
+function renderTiempos(data){
+  const byCat = {};
+  CAT_LABELS.forEach(c=>byCat[c]=[]);
+  data.forEach(d=>{
+    if(d.diasTramite!=null && d.diasTramite>=0) byCat[d.categoria].push(d.diasTramite);
+  });
+  const labels = CAT_LABELS.filter(c=>byCat[c].length>0);
+  const values = labels.map(c=>byCat[c].reduce((s,v)=>s+v,0)/byCat[c].length);
+  destroyChart('tiempos');
+  CHARTS.tiempos = new Chart(document.getElementById('chartTiempos'), {
+    type:'bar',
+    data:{ labels: labels.map(l=>l.charAt(0)+l.slice(1).toLowerCase()), datasets:[{
+      data: values, backgroundColor: labels.map(l=>CAT_COLORS[l]), borderRadius:4, maxBarThickness:60
+    }]},
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{display:false}, tooltip:{ callbacks:{ label: c=>fmtInt(c.parsed.y)+' días promedio' } } },
+      scales:{
+        x:{ grid:{display:false}, ticks:{font:baseFont()} },
+        y:{ beginAtZero:true, grid:{color:'rgba(22,36,63,.07)'}, ticks:{font:baseFont()} }
+      }
+    }
+  });
+}
+
+cargarDatos();
+</script>
+</body>
+</html>
