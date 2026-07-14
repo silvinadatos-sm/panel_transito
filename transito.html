@@ -411,6 +411,202 @@ footer .meta{max-width:820px}
 </div>
 
 <script>
+
+// ── Normalización de localidades ─────────────────────────
+const LOC_MAP = {
+  'SAN MARTIN':'Gral. San Martín','GRAL SAN MARTIN':'Gral. San Martín',
+  'GENERAL SAN MARTIN':'Gral. San Martín','SAN MARTÍN':'Gral. San Martín',
+  'SAN MARTGIN':'Gral. San Martín','SANN MARTIN':'Gral. San Martín',
+  'SAN  MARTIN':'Gral. San Martín',
+  'VILLA BALLESTER':'Villa Ballester','V.BALLESTER':'Villa Ballester',
+  'V. BALLESTER':'Villa Ballester','VILLA BALESTER':'Villa Ballester',
+  'VILLA BALLESTEE':'Villa Ballester','VILL BALLESTER':'Villa Ballester',
+  'BALLESTER':'Villa Ballester',
+  'JOSE LEON SUAREZ':'José León Suárez','J. L. SUAREZ':'José León Suárez',
+  'J.L.SUAREZ':'José León Suárez','JOSE L.SUAREZ':'José León Suárez',
+  'J.L. SUAREZ':'José León Suárez','J.LEON.SUAREZ':'José León Suárez',
+  'J.L. SUZREZ':'José León Suárez','JOSE L. SUAREZ':'José León Suárez',
+  'CABA':'CABA','BUENOS AIRES':'CABA','CAPITAL FEDERAL':'CABA',
+  'CIUDAD AUTONOMA DE BUENOS AIRES':'CABA',
+  'TRES DE FEBRERO':'Tres de Febrero','3 DE FEBRERO':'Tres de Febrero',
+  'TES DE FEBRERO':'Tres de Febrero',
+  'LOMA HERMOSA':'Loma Hermosa',
+  'SAN ANDRES':'San Andrés',
+  'LA MATANZA':'La Matanza',
+  'VILLA MAIPU':'Villa Maipú','VILLA  MAIPU':'Villa Maipú',
+  'BILLINGHURST':'Billinghurst','BILLINGHURTS':'Billinghurst',
+  'BILLINGHURT':'Billinghurst','BILLUNGHURST':'Billinghurst',
+  'BILLUNGHURTS':'Billinghurst',
+  'VICENTE LOPEZ':'Vicente López','V.LOPEZ':'Vicente López',
+  'HURLINGHAM':'Hurlingham','HURLIMGHAM':'Hurlingham','HURLINGHAN':'Hurlingham',
+  'LANUS':'Lanús','MERLO':'Merlo','MORON':'Morón','SAN MIGUEL':'San Miguel',
+  'CASEROS':'Caseros','MORENO':'Moreno',
+  'LOMAS DE ZAMORA':'Lomas de Zamora','LOMA DE ZAMORA':'Lomas de Zamora',
+  'VILLA LYNCH':'Villa Lynch','MALVINAS ARGENTINAS':'Malvinas Argentinas',
+  'TIGRE':'Tigre','ITUZAINGO':'Ituzaingó',
+  'VILLA BOSCH':'Villa Bosch','VILLA BOSH':'Villa Bosch',
+  'VILLA LIBERTAD':'Villa Libertad',
+  'CIUDAD DEL LIBERTADOR':'Libertador',
+  'CIUDAD LIBERTADOR':'Libertador',
+  'CIUDAD L.SAN MARTIN':'Libertador',
+  'C. LIBERTADOR':'Libertador',
+  'CIUDAD DEL LIBERTADOR GENERAL SAN MARTIN':'Libertador',
+  'CIUDAD JARDIN DEL LIBERTADOR':'Libertador',
+  'CIUDAD JARDIN EL LIBERTADOR':'Libertador',
+  'C. J. DEL LIBERTADOR':'Libertador',
+  'C. J. EL LIBERTADOR':'Libertador',
+  'BARRIO LIBERTADOR':'Libertador',
+  'LIBERTAD':'Libertador','LIBERTADOR':'Libertador',
+  'EL LIBERTADOR':'Libertador',
+  'SAN ISIDRO':'San Isidro','SAN ISÍDRO':'San Isidro',
+  'AVELLANEDA':'Avellaneda','MUNRO':'Munro','VILLA BONICH':'Villa Bonich',
+  'PILAR':'Pilar','BERAZATEGUI':'Berazategui','QUILMES':'Quilmes',
+  'VILLA ADELINA':'Villa Adelina','VILLA MARTELLI':'Villa Martelli',
+  'BOULOGNE':'Boulogne','BULOGNE':'Boulogne',
+  'MARTIN CORONADO':'Martín Coronado','PABLO PODESTA':'Pablo Podestá',
+  'JOSE C PAZ':'José C. Paz','JOSE C. PAZ':'José C. Paz','JOSE CLEMENTE PAZ':'José C. Paz',
+  'SAN FERNANDO':'San Fernando',
+  'GENERAL RODRIGUEZ':'Gral. Rodríguez','GRAL RODRIGUEZ':'Gral. Rodríguez',
+  'EZEIZA':'Ezeiza','MARTINEZ':'Martínez','CARAPACHAY':'Carapachay',
+  'ALMIRANTE BROWN':'Almirante Brown','ALTE. BROWN':'Almirante Brown',
+  'ESCOBAR':'Escobar','FLORENCIO VARELA':'Florencio Varela',
+  'ESTEBAN ECHEVERRIA':'Esteban Echeverría',
+  'GONZALEZ CATAN':'González Catán','CIUDADELA':'Ciudadela',
+  'MALAVER':'Malaver','VILLA ZAGALA':'Villa Zagala',
+  'EL PALOMAR':'El Palomar','PALOMAR':'El Palomar',
+  'TEMPERLEY':'Temperley','MARCOS PAZ':'Marcos Paz','OLIVOS':'Olivos',
+  'SANTOS LUGARES':'Santos Lugares','PERGAMINO':'Pergamino',
+  'BELLA VISTA':'Bella Vista',
+  'GREGORIO DE LAFERRERE':'Gregorio de Laferrere',
+  'GREGORIO DE LA FERRERE':'Gregorio de Laferrere',
+  'LAFERRERE':'Gregorio de Laferrere','GREGORIO LAFERRERE':'Gregorio de Laferrere',
+  'GRAND BOURG':'Grand Bourg','GRAND BURG':'Grand Bourg','GRAND ROURG':'Grand Bourg',
+  'CASTELAR':'Castelar','ENTRE RIOS':'Entre Ríos',
+  'RAMOS MEJIA':'Ramos Mejía','CORRIENTES':'Corrientes',
+  'VILLA TESEI':'Villa Tesei','V.TESSEI':'Villa Tesei',
+  'VILLA SANTOS TESEI':'Villa Tesei','TESEI':'Villa Tesei','VILLA S.TESEI':'Villa Tesei',
+  'LUJAN':'Luján','SAENZ PEÑA':'Sáenz Peña',
+  'LOMAS DEL MIRADOR':'Lomas del Mirador','LOMA DEL MIRADOR':'Lomas del Mirador',
+  'MERCEDES':'Mercedes','MONTE GRANDE':'Monte Grande','MENTE GRANDE':'Monte Grande',
+  'RAFAEL CASTILLO':'Rafael Castillo','WILDE':'Wilde','BURZACO':'Burzaco',
+  'TORTUGUITAS':'Tortuguitas','LA PLATA':'La Plata','PASO DEL REY':'Paso del Rey',
+  'VIRREYES':'Virreyes','LOS POLVORINES':'Los Polvorines',
+  'BENAVIDEZ':'Benavídez','SAN JUSTO':'San Justo','GLEW':'Glew',
+  'TABLADA':'Tablada','VILLA LUZURIAGA':'Villa Luzuriaga','HAEDO':'Haedo',
+  'DEL VISO':'Del Viso','CIUDAD JARDIN DEL PALOMAR':'Ciudad Jardín del Palomar',
+  'CIUDAD EVITA':'Ciudad Evita',
+  'GENERAL PUEYRREDON':'Gral. Pueyrredón','GRAL PUEYRREDON':'Gral. Pueyrredón',
+  'PUEYRREDON':'Gral. Pueyrredón',
+  'DON TORCUATO':'Don Torcuato','GENERAL PACHECO':'Gral. Pacheco',
+  'TRONCOS DEL TALAR':'Troncos del Talar','RICARDO ROJAS':'Ricardo Rojas',
+  'ISÍDRO CASANOVA':'Isidro Casanova','ISIDRO CASANOVA':'Isidro Casanova',
+  'VIRREY DEL PINO':'Virrey del Pino',
+  'FLORIDA':'Florida','FLORIDA OESTE':'Florida Oeste',
+  'MUÑIZ':'Muñiz','PABLO NOGUES':'Pablo Nogués',
+  'INGENIERO BUDGE':'Ing. Budge','LLAVALLOL':'Llavallol','LAVALLOL':'Llavallol',
+  'BANFIELD':'Banfield','TURDERA':'Turdera','ADROGUE':'Adrogué',
+  'EZPELETA OESTE':'Ezpeleta Oeste','VILLA FIORITO':'Villa Fiorito',
+  'ALDO BONZI':'Aldo Bonzi','TAPIALES':'Tapiales',
+  'INGENIERO MASCHWITZ':'Ing. Maschwitz','ING. MASCHWITZ':'Ing. Maschwitz',
+  'BELEN DE ESCOBAR':'Belén de Escobar','EL TALAR':'El Talar',
+  'VILLA DE MAYO':'Villa de Mayo','ADOLFO SOURDEAUX':'Adolfo Sourdeaux',
+  'MAQUINISTA A SAVIO':'Maquinista Savio','MAQUINISTA SAVIO':'Maquinista Savio',
+  'SAN FRANCISCO SOLANO':'San Francisco Solano','GUERNICA':'Guernica',
+  'CANNING':'Canning','BAHIA BLANCA':'Bahía Blanca','PINAMAR':'Pinamar',
+  'USHUAIA':'Ushuaia',
+  'TRISTÁN SUAREZ':'Tristán Suárez','TRISTAN SUAREZ':'Tristán Suárez',
+  'CLAYPOLE':'Claypole',
+  'PONTEVEDRA':'Pontevedra','CIUDAD DE PONTEVEDRA':'Pontevedra',
+  'GERLI':'Gerli','BECCAR':'Beccar','LOBOS':'Lobos','TRES ARROYOS':'Tres Arroyos',
+  'GUALEGUAY':'Gualeguay','GUALEGUAYCHU':'Gualeguaychú',
+  'VILLA MADERO':'Villa Madero','ALBERTI':'Alberti','VILLA ELISA':'Villa Elisa',
+  'CHACO':'Chaco','FORMOSA':'Formosa','CORDOBA':'Córdoba','MENDOZA':'Mendoza',
+  'SANTA FE':'Santa Fe','SANTIAGO DEL ESTERO':'Santiago del Estero',
+  'CHUBUT':'Chubut','MISÍONES':'Misiones','MISIONES':'Misiones',
+  'MAR DE PLATA':'Mar del Plata','MAR DEL PLATA':'Mar del Plata',
+  'ROSARIO':'Rosario','COLOMBIA':'Colombia','BRAGADO':'Bragado',
+  'RAMALLO':'Ramallo','CHIVILCOY':'Chivilcoy','CONCORDIA':'Concordia',
+  'RAFAELA':'Rafaela','TANDIL':'Tandil','BOSQUES':'Bosques','TRUJUI':'Trujuí',
+  'CAMPANA':'Campana','ZARATE':'Zárate','CHACABUCO':'Chacabuco',
+  'PASO DE LA PATRIA':'Paso de la Patria','MALAGUEÑO':'Malagueño',
+  'PRESÍDENTE DERQUI':'Presidente Derqui','PRESIDENTE DERQUI':'Presidente Derqui',
+  'ENSENADA':'Ensenada','VICTORIA':'Victoria','SAN PEDRO':'San Pedro',
+  'CAÑUELAS':'Cañuelas','JUNIN':'Junín',
+  'MATADEROS':'Mataderos (CABA)','PARQUE CHACABUCO':'Parque Chacabuco (CABA)',
+  'NUÑEZ':'Nuñez (CABA)','SAAVEDRA':'Saavedra (CABA)','PALERMO':'Palermo (CABA)',
+  'VILLA ORTUZAR':'Villa Ortúzar (CABA)','PTE. PERON':'Pdte. Perón',
+  'GENERAL BELGRANO':'Gral. Belgrano',
+  'GENERAL LAS HERAS':'Gral. Las Heras','GRAL LAS HERAS':'Gral. Las Heras',
+  'SAN VICENTE':'San Vicente','SAN JOSE':'San José',
+  'VILLA GOBERNADOR GALVEZ':'Villa Gobernador Gálvez',
+  'CHILAVERT':'Chilavert (CABA)',
+  'SAN MIGUEL DE TUCUMAN':'San Miguel de Tucumán',
+  'SÍN DATOS INGRESADOS':'Sin datos','SÍN DATOS':'Sin datos',
+  'DATOS NO INGRESADOS':'Sin datos','ILEGIBLE':'Sin datos',
+  'VEHICULO ABANDONADO':'Sin datos',
+  'SÍN DATOS(AUTO EN ESTADO DE ABANDONO)':'Sin datos',
+  'SÍN DATOS(VEHICULO EN ESTADO DE ABANDONO)':'Sin datos',
+  'SÍN DATOS INGRESADOS (AUTO EN ESTADO DE ABANDONO)':'Sin datos',
+  'SÍN DATOS INGRESADOS (VEHICULO EN ESTADO DE ABANDONO)':'Sin datos',
+  'DATOS NO INGRESADOS (VEHICULO EN ESTADO DE ABANDONO)':'Sin datos',
+  'SÍN DATOS SE DA A LA FUGA':'Sin datos',
+  'SÍN DATOS INGRESADOS (SE DA A LA FUGA)':'Sin datos',
+  'SÍN DATOS (SE NIEGA A PRESENTAR DOCUMENTACION)':'Sin datos',
+  'SÍN DATOS (AUTO EN ESTADO DE ABANDONO)':'Sin datos',
+};
+// ── Distancia de Levenshtein ─────────────────────────────
+function levenshtein(a, b){
+  const m = a.length, n = b.length;
+  const dp = Array.from({length: m+1}, (_,i) => Array.from({length: n+1}, (_,j) => j===0?i:0));
+  for(let j=1;j<=n;j++) dp[0][j]=j;
+  for(let i=1;i<=m;i++) for(let j=1;j<=n;j++)
+    dp[i][j] = a[i-1]===b[j-1] ? dp[i-1][j-1]
+      : 1 + Math.min(dp[i-1][j], dp[i][j-1], dp[i-1][j-1]);
+  return dp[m][n];
+}
+
+// Claves conocidas del diccionario (se construye una vez)
+const LOC_KEYS = Object.keys(LOC_MAP);
+
+// Set para evitar loguear la misma localidad desconocida más de una vez
+const _locSugeridasLog = new Set();
+
+function normLocalidad(s){
+  const raw = (s||'').trim().replace(/\s+/g,' ');
+  if(!raw) return 'Sin datos';
+  const key = raw.toUpperCase().trim().replace(/\s+/g,' ');
+  if(LOC_MAP[key]) return LOC_MAP[key];
+  // Entradas claramente no geográficas
+  if(/^\d|AFC|IVECO|MERCEDES BENZ|AV\.|V°|ZONA RURAL|BARRIO PARQUE|FIRMAT|MENDOZA JUNIN|MAIPU-|ARROYO SECO|RIVADAVIA|CASEROSA|VILLA HUMBERTO|VILLA CONCEPCION|VILLA AYACUCHO|INDEPENDENCIA|VILLA NUEVA|LA RIOJA|SUIZO|L\. N\. ALEM|MARIANO ACOSTA|P\. Y O\.|CABILDO|VILLA RAFFO|CARCOVA|VILLA SAN LUIS/.test(key)){
+    return 'Sin datos';
+  }
+  // ── Diagnóstico fuzzy: buscar la clave más cercana ──────
+  if(!_locSugeridasLog.has(key)){
+    _locSugeridasLog.add(key);
+    let mejorClave = null, mejorDist = Infinity;
+    for(const k of LOC_KEYS){
+      const d = levenshtein(key, k);
+      if(d < mejorDist){ mejorDist = d; mejorClave = k; }
+    }
+    if(mejorDist <= 4){
+      console.warn(
+        \`[LOCALIDAD NO RECONOCIDA] "\${raw}" → \` +
+        \`¿Querés mapear a "\${LOC_MAP[mejorClave]}"? (clave sugerida: "\${mejorClave}", distancia: \${mejorDist})\` +
+        \`\n  Para agregarlo: '\${key}':'\${LOC_MAP[mejorClave]}',\`
+      );
+    } else {
+      console.info(
+        \`[LOCALIDAD NUEVA] "\${raw}" no tiene entrada en el diccionario ni coincidencia cercana. " +
+        \`Se mostrará como: "\${key.split(' ').map(w=>['DE','DEL','LA','LAS','LOS','Y','EN','EL','AL'].includes(w)?w.toLowerCase():w.charAt(0)+w.slice(1).toLowerCase()).join(' ')}"\`
+      );
+    }
+  }
+  // Title case básico como fallback
+  return key.split(' ').map(w =>
+    ['DE','DEL','LA','LAS','LOS','Y','EN','EL','AL'].includes(w) ? w.toLowerCase() :
+    w.charAt(0) + w.slice(1).toLowerCase()
+  ).join(' ');
+}
 (function(){
   var saved = localStorage.getItem('panel-theme');
   if(saved === 'dark') document.body.classList.add('dark');
@@ -559,7 +755,7 @@ function procesarFilas(rows, fuente){
       tipoVehiculo: normUpperVehTurno(r['Tipo de vehículo']) || 'Sin especificar',
       operativo,
       turno: normUpperVehTurno(r['TurNo de infracción '] || r['TurNo de infracción']) || 'Sin especificar',
-      localidad: normUpperVehTurno(r['Localidad del infractor']) || 'Sin especificar',
+      localidad: normLocalidad(r['Localidad del infractor']),
       retencion,
       secuestro,
       dominio: norm(r['Dominio']) || 'S/D',
@@ -796,9 +992,10 @@ function renderTipo(data){
 }
 function renderTurno(data){ rankingChartColorMap('chartTurno','turno', data, d=>d.turno, TURNO_COLORS, '#9DB3C7'); }
 function renderLocalidad(data){
-  const counts = {};
-  data.forEach(d=>{ if(d.localidad) counts[d.localidad]=(counts[d.localidad]||0)+1; });
-  rankingChartColorMap('chartLocalidad','localidad', data, d=>d.localidad, null, '#2E84C7', 10);
+  // Excluir registros sin localidad válida del ranking
+  const sinDatos = new Set(['Sin datos','Sin especificar','']);
+  const dataConLoc = data.filter(d => d.localidad && !sinDatos.has(d.localidad));
+  rankingChartColorMap('chartLocalidad','localidad', dataConLoc, d=>d.localidad, null, '#2E84C7', 10);
 }
 
 function renderFaltas(data){
