@@ -238,25 +238,16 @@ footer{margin-top:18px;padding-top:14px;border-top:1px solid var(--line2);font-s
       <div class="k-sub">visitas por semana en el período</div>
     </div>
     <div class="kpi green">
-      <div class="k-lbl">Respuesta positiva</div>
+      <div class="k-lbl">Reclamos cerrados</div>
       <div class="k-val num" id="kpiPos">—</div>
-      <div class="k-sub" id="kpiPosSub">vehículos removidos o problema resuelto</div>
+      <div class="k-sub" id="kpiPosSub">visita realizada con resultado — reclamo cerrado</div>
     </div>
     <div class="kpi amber">
       <div class="k-lbl">A solucionar</div>
       <div class="k-val num" id="kpiPend">—</div>
-      <div class="k-sub" id="kpiPendSub">requieren seguimiento o remoción</div>
+      <div class="k-sub" id="kpiPendSub">requieren seguimiento, otra visita o remoción</div>
     </div>
-    <div class="kpi">
-      <div class="k-lbl">Respuesta negativa</div>
-      <div class="k-val num" id="kpiNeg">—</div>
-      <div class="k-sub" id="kpiNegSub">vehículo no constatado en el lugar</div>
-    </div>
-    <div class="kpi">
-      <div class="k-lbl">Reclamos 2025 atendidos</div>
-      <div class="k-val num" id="kpiBacklog">—</div>
-      <div class="k-sub">denuncias del año anterior respondidas</div>
-    </div>
+
   </div>
 
   <div class="card full" style="margin-bottom:10px">
@@ -272,7 +263,8 @@ footer{margin-top:18px;padding-top:14px;border-top:1px solid var(--line2);font-s
   <div class="grid3" style="margin-bottom:10px">
     <div class="card">
       <div class="c-head">
-        <div class="c-title">Estado del reclamo</div>
+        <div class="c-title">Resultado de la gestión</div>
+        <div class="c-note">Cerrados vs. pendientes de acción</div>
       </div>
       <div class="c-body" style="height:210px"><canvas id="chartEstado"></canvas></div>
     </div>
@@ -313,7 +305,8 @@ footer{margin-top:18px;padding-top:14px;border-top:1px solid var(--line2);font-s
   </div><!-- /dashBody -->
 
   <footer>
-    <div>Fuente: registro de patrulla de reclamos de vehículos abandonados, Subsecretaría de Transporte, Tránsito y Seguridad Vial, Municipalidad de General San Martín. "Respuesta negativa" incluye los casos donde el vehículo ya no estaba al momento de la visita, lo cual frecuentemente indica que el vecino ya resolvió la situación o el vehículo fue movido. El promedio semanal se calcula sobre el rango de fechas de los registros filtrados.</div>
+    <div>Fuente: registro de patrulla de reclamos de vehículos abandonados, Subsecretaría de Transporte, Tránsito y Seguridad Vial, Municipalidad de General San Martín. "Cerrado" agrupa los reclamos con resultado definitivo: tanto los casos donde el vehículo fue removido o el propietario tomó acciones (categoría original: positiva), como los casos donde el vehículo ya no se encontraba al momento de la visita (categoría original: negativa). Ambas situaciones representan reclamos cerrados desde el punto de vista operativo. "A solucionar" corresponde a los que requieren seguimiento, otra visita o intervención mayor. El promedio semanal se calcula sobre el rango de fechas de los registros filtrados.</div>
+
     <div id="lastUpdate"></div>
   </footer>
 </div>
@@ -573,19 +566,15 @@ function renderKPIs(data){
   const semanas = Math.max(1, (max-min) / 604800000);
   document.getElementById('kpiSemanal').textContent = (data.length/semanas).toFixed(1).replace('.',',');
 
-  const pos = data.filter(d=>d.estado==='Respuesta positiva').length;
+  const cerrados = data.filter(d=>d.estado==='Respuesta positiva'||d.estado==='Respuesta negativa').length;
   const pend = data.filter(d=>d.estado==='A solucionar').length;
-  const neg = data.filter(d=>d.estado==='Respuesta negativa').length;
   const n = data.length;
-  document.getElementById('kpiPos').textContent = fmtInt(pos);
-  document.getElementById('kpiPosSub').textContent = fmtPct(pos/n*100)+' del total';
+  document.getElementById('kpiPos').textContent = fmtInt(cerrados);
+  document.getElementById('kpiPosSub').textContent = fmtPct(cerrados/n*100)+' del total filtrado';
   document.getElementById('kpiPend').textContent = fmtInt(pend);
-  document.getElementById('kpiPendSub').textContent = fmtPct(pend/n*100)+' del total';
-  document.getElementById('kpiNeg').textContent = fmtInt(neg);
-  document.getElementById('kpiNegSub').textContent = fmtPct(neg/n*100)+' — vehículo no constatado';
+  document.getElementById('kpiPendSub').textContent = fmtPct(pend/n*100)+' del total filtrado';
 
-  const backlog = data.filter(d=>d.anioReclamo===2025).length;
-  document.getElementById('kpiBacklog').textContent = fmtInt(backlog);
+
 }
 
 function destroyChart(k){if(CHARTS[k]){CHARTS[k].destroy();delete CHARTS[k];}}
@@ -656,21 +645,27 @@ function renderSemanal(data){
 }
 
 function renderEstado(data){
-  const counts = {};
-  data.forEach(d=>{if(d.estado) counts[d.estado]=(counts[d.estado]||0)+1;});
   const dark = document.body.classList.contains('dark');
-  const labels = Object.keys(counts);
-  const values = labels.map(l=>counts[l]);
-  const bgColors = labels.map(l=>ESTADO_COLORS[l]||(dark?'#5A7A98':'#8499B2'));
+  const cerrados = data.filter(d=>d.estado==='Respuesta positiva'||d.estado==='Respuesta negativa').length;
+  const pend = data.filter(d=>d.estado==='A solucionar').length;
   destroyChart('estado');
   CHARTS.estado = new Chart(document.getElementById('chartEstado'),{
-    type:'bar',
-    data:{labels,datasets:[{data:values,backgroundColor:bgColors,borderRadius:4}]},
+    type:'doughnut',
+    data:{
+      labels:['Cerrado','A solucionar'],
+      datasets:[{
+        data:[cerrados,pend],
+        backgroundColor:[dark?'#34D399':'#0F7860', dark?'#F2AE4E':'#BD7A1B'],
+        borderWidth:0,hoverOffset:6
+      }]
+    },
     options:{
-      indexAxis:'y',responsive:true,maintainAspectRatio:false,
-      plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>fmtInt(ctx.parsed.x)+' ('+fmtPct(ctx.parsed.x/data.length*100)+')'}}},
-      scales:{x:{beginAtZero:true,grid:{color:gridColor()},ticks:{font:baseFont()}},
-              y:{grid:{display:false},ticks:{font:{family:'Clan OT',size:11},autoSkip:false}}}
+      responsive:true,maintainAspectRatio:false,
+      cutout:'65%',
+      plugins:{
+        legend:{display:true,position:'bottom',labels:{font:{family:'Clan OT',size:11},padding:14,boxWidth:12}},
+        tooltip:{callbacks:{label:ctx=>ctx.label+': '+fmtInt(ctx.parsed)+' ('+fmtPct(ctx.parsed/data.length*100)+')'}}
+      }
     }
   });
 }
